@@ -27,6 +27,8 @@ import (
 	"sync"
 	"time"
 
+	otel_trace "go.opentelemetry.io/otel/trace"
+
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/codes"
@@ -834,6 +836,13 @@ func (cs *clientStream) finish(err error) {
 
 func (a *csAttempt) sendMsg(m interface{}, hdr, payld, data []byte) error {
 	cs := a.cs
+
+	span := otel_trace.SpanFromContext(cs.ctx)
+	span.AddEvent("GRPCClient sendMsg Start")
+	defer func() {
+		span.AddEvent("GRPCClient sendMsg End")
+	}()
+
 	if a.trInfo != nil {
 		a.mu.Lock()
 		if a.trInfo.tr != nil {
@@ -861,6 +870,11 @@ func (a *csAttempt) sendMsg(m interface{}, hdr, payld, data []byte) error {
 
 func (a *csAttempt) recvMsg(m interface{}, payInfo *payloadInfo) (err error) {
 	cs := a.cs
+	span := otel_trace.SpanFromContext(cs.ctx)
+	span.AddEvent("GRPCClient recvMsg Start")
+	defer func() {
+		span.AddEvent("GRPCClient recvMsg End")
+	}()
 	if a.statsHandler != nil && payInfo == nil {
 		payInfo = &payloadInfo{}
 	}
